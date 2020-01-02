@@ -10,10 +10,18 @@ import springbook.user.domain.User;
 
 public class UserDao {
 	
-	private SimpleConnectionMaker simpleConnectionMaker;
+//	private SimpleConnectionMaker simpleConnectionMaker;
+	
+	
+	private ConnectionMaker connectionMaker;//인터페이스를 통해 오브젝트에 접근하므로 구체적인 클래스 정보를 알 필요가 없다
 	
 	public UserDao() {
-		simpleConnectionMaker = new SimpleConnectionMaker();
+//		simpleConnectionMaker = new SimpleConnectionMaker();
+		connectionMaker = new DConnectionMaker();
+	}
+	
+	public UserDao(ConnectionMaker connectionMaker) {
+		this.connectionMaker = connectionMaker;
 	}
 	
 	//users 테이블에 user정보 등록
@@ -23,7 +31,9 @@ public class UserDao {
 		
 //		Connection c = getConnection(); //추출한 메서드를 호출
 		
-		Connection c= simpleConnectionMaker.makeNewConnection(); //독립적으로 만든 클래스를 사용
+//		Connection c= simpleConnectionMaker.makeNewConnection(); //독립적으로 만든 클래스를 사용
+		
+		Connection c= connectionMaker.makeConnection(); //인터페이스에 정의된 메서드를 사용하므로 클래스가 바뀐다고 해도 메서드 이름이 변경될 걱정은 없다.
 		
 		PreparedStatement ps = c.prepareStatement("insert into users(id,name,password) values(?,?,?)");
 		ps.setString(1, user.getId());
@@ -42,7 +52,9 @@ public class UserDao {
 		
 //		Connection c = getConnection(); //추출한 메서드를 호출
 		
-		Connection c= simpleConnectionMaker.makeNewConnection();
+//		Connection c= simpleConnectionMaker.makeNewConnection();
+		
+		Connection c= connectionMaker.makeConnection();
 		
 		PreparedStatement ps = c.prepareStatement("select * from users where id = ?");
 		ps.setString(1,id);
