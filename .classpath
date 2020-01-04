@@ -7,5 +7,12 @@
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="C:/Users/김승현/Desktop/mysql-connector-java-5.1.47/mysql-connector-java-5.1.47/mysql-connector-java-5.1.47.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/com.springsource.net.sf.cglib-2.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/com.springsource.org.apache.commons.logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.asm-3.0.7.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.beans-3.0.7.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.context-3.0.7.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.core-3.0.7.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.expression-3.0.7.RELEASE.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
