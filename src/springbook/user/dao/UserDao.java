@@ -1,10 +1,11 @@
 package springbook.user.dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import javax.sql.DataSource;
 
 import springbook.user.domain.User;
 
@@ -13,19 +14,33 @@ public class UserDao {
 //	private SimpleConnectionMaker simpleConnectionMaker;
 	
 	
-	private ConnectionMaker connectionMaker;//인터페이스를 통해 오브젝트에 접근하므로 구체적인 클래스 정보를 알 필요가 없다
+//	private ConnectionMaker connectionMaker;//인터페이스를 통해 오브젝트에 접근하므로 구체적인 클래스 정보를 알 필요가 없다
+	private DataSource dataSource;
 	
-	public UserDao() {
+//	public UserDao() {
 //		simpleConnectionMaker = new SimpleConnectionMaker();
-		connectionMaker = new DConnectionMaker();
-	}
+//		connectionMaker = new DConnectionMaker();
+//	}
 	
-	public UserDao(ConnectionMaker connectionMaker) {
-		this.connectionMaker = connectionMaker;
-	}
+//	public UserDao(ConnectionMaker connectionMaker) {
+//		this.connectionMaker = connectionMaker;
+//	}
 	
+	
+//	public ConnectionMaker getConnectionMaker() {
+//		return connectionMaker;
+//	}
+//
+//	public void setConnectionMaker(ConnectionMaker connectionMaker) {
+//		this.connectionMaker = connectionMaker;
+//	}
+	
+	public void setDataSource(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
+
 	//users 테이블에 user정보 등록
-	public void add(User user) throws ClassNotFoundException, SQLException {
+	public void add(User user) throws SQLException {
 //		Class.forName("com.mysql.jdbc.Driver");
 //		Connection c = DriverManager.getConnection("jdbc:mysql://localhost/springbook", "spring", "book");
 		
@@ -33,7 +48,8 @@ public class UserDao {
 		
 //		Connection c= simpleConnectionMaker.makeNewConnection(); //독립적으로 만든 클래스를 사용
 		
-		Connection c= connectionMaker.makeConnection(); //인터페이스에 정의된 메서드를 사용하므로 클래스가 바뀐다고 해도 메서드 이름이 변경될 걱정은 없다.
+//		Connection c= connectionMaker.makeConnection(); //인터페이스에 정의된 메서드를 사용하므로 클래스가 바뀐다고 해도 메서드 이름이 변경될 걱정은 없다.
+		Connection c = dataSource.getConnection(); //DataSource를 이용해서 Connection을 가져오도록 수정함
 		
 		PreparedStatement ps = c.prepareStatement("insert into users(id,name,password) values(?,?,?)");
 		ps.setString(1, user.getId());
@@ -45,8 +61,10 @@ public class UserDao {
 		c.close();
 	}
 	
+	
+
 	//users테이블에서 user정보 조회
-	public User get(String id) throws ClassNotFoundException, SQLException {
+	public User get(String id) throws SQLException {
 //		Class.forName("com.mysql.jdbc.Driver");
 //		Connection c = DriverManager.getConnection("jdbc:mysql://localhost/springbook", "spring", "book");
 		
@@ -54,7 +72,8 @@ public class UserDao {
 		
 //		Connection c= simpleConnectionMaker.makeNewConnection();
 		
-		Connection c= connectionMaker.makeConnection();
+//		Connection c= connectionMaker.makeConnection();
+		Connection c = dataSource.getConnection();
 		
 		PreparedStatement ps = c.prepareStatement("select * from users where id = ?");
 		ps.setString(1,id);

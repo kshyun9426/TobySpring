@@ -14,5 +14,6 @@
 	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.context-3.0.7.RELEASE.jar"/>
 	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.core-3.0.7.RELEASE.jar"/>
 	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.expression-3.0.7.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.jdbc-3.0.7.RELEASE.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
