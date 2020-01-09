@@ -1,9 +1,14 @@
 package springbook.user.dao;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.sql.SQLException;
 
+import org.junit.Test;
+import org.junit.runner.JUnitCore;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
 import springbook.user.domain.User;
@@ -27,32 +32,87 @@ public class UserDaoTest {
 		 *   Xml파일의 위치를 UserDao의 위치로부터 상대적으로 지정할 수 있다.
 		 *   Ex) new ClassPathXmlApplicationContext("daoContext.xml",UserDao.class);
 		 */
-		ApplicationContext context = new GenericXmlApplicationContext("springbook/user/dao/applicationContext.xml"); //생성자에는 applicationContext.xml의 클래스패스를 넣는다.
-		UserDao dao = context.getBean("userDao", UserDao.class);
-		
-		User user = new User();
-		user.setId("kshyun");
-		user.setName("김승현");
-		user.setPassword("aa123");
-		
-		dao.add(user);
-		
-		System.out.println(user.getId() + " 등록 성공");
-		
-		User user2 = dao.get(user.getId());
+//		ApplicationContext context = new GenericXmlApplicationContext("springbook/user/dao/applicationContext.xml"); //생성자에는 applicationContext.xml의 클래스패스를 넣는다.
+//		UserDao dao = context.getBean("userDao", UserDao.class);
+//		
+//		User user = new User();
+//		user.setId("kshyun");
+//		user.setName("김승현");
+//		user.setPassword("aa123");
+//		
+//		dao.add(user);
+//		
+//		System.out.println(user.getId() + " 등록 성공");
+//		
+//		User user2 = dao.get(user.getId());
 		
 //		System.out.println(user2.getName());
 //		System.out.println(user2.getPassword());
 //		System.out.println(user2.getId() + " 조회 성공");
 		
-		if(!user.getName().equals(user2.getName())) {
-			System.out.println("테스트 실패(name)");
-		}else if(!user.getPassword().equals(user2.getPassword())) {
-			System.out.println("테스트 실패(password)");
-		}else {
-			System.out.println("조회 테스트 성공");
-		}
+//		if(!user.getName().equals(user2.getName())) {
+//			System.out.println("테스트 실패(name)");
+//		}else if(!user.getPassword().equals(user2.getPassword())) {
+//			System.out.println("테스트 실패(password)");
+//		}else {
+//			System.out.println("조회 테스트 성공");
+//		}
+		
+		/*
+		 * JUnit 테스트 실행
+		 */
+		JUnitCore.main("springbook.user.dao.UserDaoTest");
 		
 	}
 	
+	/*
+	 * 동일한 결과를 보장하는 테스트
+	 * 단위 테스트는 코드가 바뀌지 않는다면 매번 실행할 때마다 동일한 테스트 결과를 얻을 수 있어야 한다.
+	 */
+	@Test
+	public void addAndGet() throws SQLException {
+		
+		ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml", this.getClass());
+		
+		UserDao dao = context.getBean("userDao", UserDao.class);
+		dao.deleteAll();
+		assertThat(dao.getCount(),is(0));
+		
+		User user = new User();
+		user.setId("gyumee");
+		user.setName("김수현");
+		user.setPassword("springno1");
+		
+		dao.add(user);
+		assertThat(dao.getCount(),is(1));
+		
+		User user2 = dao.get(user.getId());
+		
+		assertThat(user2.getName(), is(user.getName()));
+		assertThat(user.getPassword(),is(user2.getPassword()));
+	}
+	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
