@@ -10,6 +10,7 @@ import org.junit.runner.JUnitCore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import springbook.user.domain.User;
 
@@ -75,21 +76,71 @@ public class UserDaoTest {
 		ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml", this.getClass());
 		
 		UserDao dao = context.getBean("userDao", UserDao.class);
+//		User user = new User();
+//		user.setId("gyumee");
+//		user.setName("김수현");
+//		user.setPassword("springno1");
+		User user1 = new User("gyumee", "박성철", "springno1");
+		User user2 = new User("kshyun", "김승현", "springno2");
+		
 		dao.deleteAll();
 		assertThat(dao.getCount(),is(0));
 		
-		User user = new User();
-		user.setId("gyumee");
-		user.setName("김수현");
-		user.setPassword("springno1");
 		
-		dao.add(user);
+		dao.add(user1);
+		dao.add(user2);
+		assertThat(dao.getCount(),is(2));
+		
+		//get()메서드에 대한 테스트 검증
+		User userGet1 = dao.get(user1.getId());
+		assertThat(userGet1.getName(), is(user1.getName()));
+		assertThat(userGet1.getPassword(),is(user1.getPassword()));
+		
+		User userGet2 = dao.get(user2.getId());
+		assertThat(userGet2.getName(),is(user2.getName()));
+		assertThat(userGet2.getPassword(),is(user2.getPassword()));
+	}
+	
+	/*
+	 * JUnit은 특정한 테스트 메서드의 실행 순서를 보장해주지 않는다. 테스트의 결과가 테스트 실행순서에 영향을 받는다면 테스트를 잘못 만든것이다.
+	 */
+	//getCount()메서드에 대한 테스트
+	@Test
+	public void count() throws SQLException {
+		ApplicationContext context = new GenericXmlApplicationContext("springbook/user/dao/applicationContext.xml");
+		UserDao dao = context.getBean("userDao", UserDao.class);
+		User user1 = new User("gyumee", "박성철", "springno1");
+		User user2 = new User("leegw700", "이길원", "springno2");
+		User user3 = new User("bumjin", "박범진", "springno3");
+		
+		dao.deleteAll();
+		assertThat(dao.getCount(),is(0));
+		
+		dao.add(user1);
 		assertThat(dao.getCount(),is(1));
 		
-		User user2 = dao.get(user.getId());
+		dao.add(user2);
+		assertThat(dao.getCount(),is(2));
 		
-		assertThat(user2.getName(), is(user.getName()));
-		assertThat(user.getPassword(),is(user2.getPassword()));
+		dao.add(user3);
+		assertThat(dao.getCount(),is(3));
+	}
+	
+	/*
+	 * @Test에 expected를 추가해놓으면 보통의 테스트와는 반대로, 정상적으로 테스트 메서드를 마치면 테스트가 실패하고, expected에서 지정한 예외가 던져지면 테스트가
+	 * 성공한다.
+	 */
+	@Test(expected=EmptyResultDataAccessException.class)
+	public void getUserFailure() throws SQLException {
+		ApplicationContext context = new GenericXmlApplicationContext("/springbook/user/dao/applicationContext.xml");
+		
+		UserDao dao = context.getBean("userDao", UserDao.class);
+		dao.deleteAll();
+		assertThat(dao.getCount(),is(0));
+		/*
+		 * 테스트를 작성할때는 부정적인 케이스를 먼저 만드는 습관을 들이는게 좋다.
+		 */
+		dao.get("unknown_id");
 	}
 	
 }
