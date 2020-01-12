@@ -51,16 +51,8 @@ public class UserDao {
 //		Connection c= simpleConnectionMaker.makeNewConnection(); //독립적으로 만든 클래스를 사용
 		
 //		Connection c= connectionMaker.makeConnection(); //인터페이스에 정의된 메서드를 사용하므로 클래스가 바뀐다고 해도 메서드 이름이 변경될 걱정은 없다.
-		Connection c = dataSource.getConnection(); //DataSource를 이용해서 Connection을 가져오도록 수정함
-		
-		PreparedStatement ps = c.prepareStatement("insert into users(id,name,password) values(?,?,?)");
-		ps.setString(1, user.getId());
-		ps.setString(2, user.getName());
-		ps.setString(3, user.getPassword());
-		ps.executeUpdate();
-		
-		ps.close();
-		c.close();
+		StatementStrategy st = new AddStatement(user);
+		jdbcContextWithStatementStrategy(st);
 	}
 	
 	
@@ -114,29 +106,74 @@ public class UserDao {
 	
 	
 	public void deleteAll() throws SQLException {
-		Connection c = dataSource.getConnection();
+		StatementStrategy st = new DeleteAllStatement(); //선정한 전략 클래스의 오브젝트 생성
+		jdbcContextWithStatementStrategy(st); //컨텍스트호출. 전략 오브젝트 전달
+	}
+	
+	//컨텍스트에 해당하는 부분을 별도 메서드로 추출
+	public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException {
 		
-		PreparedStatement ps = c.prepareStatement("delete from users");
-		ps.executeUpdate();
+		Connection c = null;
+		PreparedStatement ps = null;
 		
-		ps.close();
-		c.close();
+		try {
+			c = dataSource.getConnection();
+			ps = stmt.makePreparedStatement(c);
+			ps.executeUpdate();
+		}catch(SQLException e) {
+			throw e;
+		}finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				}catch(SQLException e) {
+					
+				}
+			}
+			if(c != null) {
+				try {
+					c.close();
+				}catch(SQLException e) {
+				}
+			}
+		}
+		
 	}
 	
 	public int getCount() throws SQLException {
-		Connection c = dataSource.getConnection();
 		
-		PreparedStatement ps = c.prepareStatement("select count(*) from users");
+		Connection c = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		
-		ResultSet rs = ps.executeQuery();
-		rs.next();
-		int count = rs.getInt(1);
-		
-		rs.close();
-		ps.close();
-		c.close();
-		
-		return count;
+		try {
+			c = dataSource.getConnection();
+			ps = c.prepareStatement("select count(*) from users");
+			rs = ps.executeQuery();
+			rs.next();
+			return rs.getInt(1);
+		}catch(SQLException e) {
+			throw e;
+		}finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+				}
+			}
+			if(ps != null) {
+				try {
+					ps.close();
+				}catch(SQLException e) {
+				}
+			}
+			if(c != null) {
+				try {
+					c.close();
+				}catch(SQLException e) {
+				}
+			}
+		}
 	}
 	
 }

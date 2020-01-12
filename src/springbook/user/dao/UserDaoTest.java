@@ -5,19 +5,39 @@ import static org.junit.Assert.assertThat;
 
 import java.sql.SQLException;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.JUnitCore;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import springbook.user.domain.User;
 
 /*
  * UserDaoTest는 UserDao와 ConnectionMaker 구현 클래스와의 런타임 오브젝트 의존 관계를 설정하는 책임을 담당한다.
  */
+
+//테스트에서 필요로 하는 애플리케이션 컨텍스트를 만들어서 모든 테스트가 공유하게 할 수 있다.(=하나의 테스트 클래스 내의 테스트 메서드는 같은 애플리케이션 컨텍스트를 공유)
+//@RunWith은 JUnit 프레임워크의 테스트 실행 방법을 확장할 때 사용하는 애노테이션이다.
+//@ContextConfiguration은 자동으로 만들어줄 애플리케이션 컨텍스트의 설정파일 위치를 지정한 것이다.
+@RunWith(SpringJUnit4ClassRunner.class)//SpringJUnit4ClassRunner라는 JUnit용 테스트 컨텍스트 프레임워크 확장 클래스를 지정해주면 JUnit이 테스트를 진행하는
+									   //중에 테스트가 사용할 애플리케이션 컨텍스트를 만들고 관리하는 작업을 진행한다.
+@ContextConfiguration(locations="/springbook/user/dao/applicationContext.xml")
 public class UserDaoTest {
+	
+//	@Autowired
+//	private ApplicationContext context;
+	@Autowired
+	private UserDao dao;
+	private User user1;
+	private User user2;
+	private User user3;
+	
+	
 	public static void main(String[] args) throws ClassNotFoundException, SQLException {
 		
 		//애노테이션 기반의 애플리케이션 컨텍스트 생성방법
@@ -67,21 +87,34 @@ public class UserDaoTest {
 	}
 	
 	/*
+	 * JUnit이 제공하는 애노테이션. @Test메서드가 실행되기 전에 먼저 실행해야 하는 메서드를 정의한다.
+	 */
+	@Before
+	public void setUp() {
+//		ApplicationContext context = new GenericXmlApplicationContext("/springbook/user/dao/applicationContext.xml");
+//		this.dao = context.getBean("userDao", UserDao.class);
+		
+		this.user1 = new User("gyumee", "박성철", "springno1");
+		this.user2 = new User("leegw700", "이길원", "springno2");
+		this.user3 = new User("bumjin", "박범진", "springno3");
+	}
+	
+	/*
 	 * 동일한 결과를 보장하는 테스트
 	 * 단위 테스트는 코드가 바뀌지 않는다면 매번 실행할 때마다 동일한 테스트 결과를 얻을 수 있어야 한다.
 	 */
 	@Test
 	public void addAndGet() throws SQLException {
 		
-		ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml", this.getClass());
+//		ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml", this.getClass());
 		
-		UserDao dao = context.getBean("userDao", UserDao.class);
+//		UserDao dao = context.getBean("userDao", UserDao.class);
 //		User user = new User();
 //		user.setId("gyumee");
 //		user.setName("김수현");
 //		user.setPassword("springno1");
-		User user1 = new User("gyumee", "박성철", "springno1");
-		User user2 = new User("kshyun", "김승현", "springno2");
+//		User user1 = new User("gyumee", "박성철", "springno1");
+//		User user2 = new User("kshyun", "김승현", "springno2");
 		
 		dao.deleteAll();
 		assertThat(dao.getCount(),is(0));
@@ -107,11 +140,11 @@ public class UserDaoTest {
 	//getCount()메서드에 대한 테스트
 	@Test
 	public void count() throws SQLException {
-		ApplicationContext context = new GenericXmlApplicationContext("springbook/user/dao/applicationContext.xml");
-		UserDao dao = context.getBean("userDao", UserDao.class);
-		User user1 = new User("gyumee", "박성철", "springno1");
-		User user2 = new User("leegw700", "이길원", "springno2");
-		User user3 = new User("bumjin", "박범진", "springno3");
+//		ApplicationContext context = new GenericXmlApplicationContext("springbook/user/dao/applicationContext.xml");
+//		UserDao dao = context.getBean("userDao", UserDao.class);
+//		User user1 = new User("gyumee", "박성철", "springno1");
+//		User user2 = new User("leegw700", "이길원", "springno2");
+//		User user3 = new User("bumjin", "박범진", "springno3");
 		
 		dao.deleteAll();
 		assertThat(dao.getCount(),is(0));
@@ -132,9 +165,9 @@ public class UserDaoTest {
 	 */
 	@Test(expected=EmptyResultDataAccessException.class)
 	public void getUserFailure() throws SQLException {
-		ApplicationContext context = new GenericXmlApplicationContext("/springbook/user/dao/applicationContext.xml");
+//		ApplicationContext context = new GenericXmlApplicationContext("/springbook/user/dao/applicationContext.xml");
 		
-		UserDao dao = context.getBean("userDao", UserDao.class);
+//		UserDao dao = context.getBean("userDao", UserDao.class);
 		dao.deleteAll();
 		assertThat(dao.getCount(),is(0));
 		/*
