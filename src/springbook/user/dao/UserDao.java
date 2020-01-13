@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import javax.sql.DataSource;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -42,7 +43,7 @@ public class UserDao {
 	}
 
 	//users 테이블에 user정보 등록
-	public void add(User user) throws SQLException {
+	public void add(final User user) throws SQLException {
 //		Class.forName("com.mysql.jdbc.Driver");
 //		Connection c = DriverManager.getConnection("jdbc:mysql://localhost/springbook", "spring", "book");
 		
@@ -51,8 +52,33 @@ public class UserDao {
 //		Connection c= simpleConnectionMaker.makeNewConnection(); //독립적으로 만든 클래스를 사용
 		
 //		Connection c= connectionMaker.makeConnection(); //인터페이스에 정의된 메서드를 사용하므로 클래스가 바뀐다고 해도 메서드 이름이 변경될 걱정은 없다.
-		StatementStrategy st = new AddStatement(user);
-		jdbcContextWithStatementStrategy(st);
+		
+		//로컬클래스(=메서드레벨에 정의되는 클래스) 생성
+		//클래스가 내부 클래스이기 때문에 자신이 선언된 곳의 정보에 접근할 수 있다는 점
+//		class AddStatement implements StatementStrategy {
+//
+//			@Override
+//			public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
+//				PreparedStatement ps = c.prepareStatement("insert into users(id,name,password) values(?,?,?)");
+//				ps.setString(1, user.getId());
+//				ps.setString(2, user.getName());
+//				ps.setString(3, user.getPassword());
+//				return ps;
+//			}
+//		}
+		
+		//익명 내부 클래스로 구현
+		//클래스 선언과 오브젝트 생성이 결합된 형태로 만들어지며, 상속할 클래스나 구현할 인터페이스를 생성자 대신 사용해서 사용
+		jdbcContextWithStatementStrategy(new StatementStrategy() {
+			@Override
+			public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
+				PreparedStatement ps = c.prepareStatement("insert into users(id,name,password) value(?,?,?)");
+				ps.setString(1, user.getId());
+				ps.setString(2, user.getName());
+				ps.setString(3, user.getPassword());
+				return ps;
+			}
+		});
 	}
 	
 	
@@ -106,8 +132,14 @@ public class UserDao {
 	
 	
 	public void deleteAll() throws SQLException {
-		StatementStrategy st = new DeleteAllStatement(); //선정한 전략 클래스의 오브젝트 생성
-		jdbcContextWithStatementStrategy(st); //컨텍스트호출. 전략 오브젝트 전달
+//		StatementStrategy st = new DeleteAllStatement(); //선정한 전략 클래스의 오브젝트 생성
+		jdbcContextWithStatementStrategy(new StatementStrategy() {
+			@Override
+			public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
+				return c.prepareStatement("delete from users");
+			}
+			
+		}); //컨텍스트호출. 전략 오브젝트 전달
 	}
 	
 	//컨텍스트에 해당하는 부분을 별도 메서드로 추출
