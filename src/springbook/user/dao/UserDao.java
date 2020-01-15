@@ -20,6 +20,10 @@ public class UserDao {
 //	private ConnectionMaker connectionMaker;//인터페이스를 통해 오브젝트에 접근하므로 구체적인 클래스 정보를 알 필요가 없다
 	private DataSource dataSource;
 	
+	private JdbcContext jdbcContext;
+	
+	
+	
 //	public UserDao() {
 //		simpleConnectionMaker = new SimpleConnectionMaker();
 //		connectionMaker = new DConnectionMaker();
@@ -38,6 +42,10 @@ public class UserDao {
 //		this.connectionMaker = connectionMaker;
 //	}
 	
+	public void setJdbcContext(JdbcContext jdbcContext) {
+		this.jdbcContext = jdbcContext;
+	}
+
 	public void setDataSource(DataSource dataSource) {
 		this.dataSource = dataSource;
 	}
@@ -69,7 +77,7 @@ public class UserDao {
 		
 		//익명 내부 클래스로 구현
 		//클래스 선언과 오브젝트 생성이 결합된 형태로 만들어지며, 상속할 클래스나 구현할 인터페이스를 생성자 대신 사용해서 사용
-		jdbcContextWithStatementStrategy(new StatementStrategy() {
+		this.jdbcContext.workWithStatementStrategy((new StatementStrategy() {
 			@Override
 			public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
 				PreparedStatement ps = c.prepareStatement("insert into users(id,name,password) value(?,?,?)");
@@ -78,7 +86,7 @@ public class UserDao {
 				ps.setString(3, user.getPassword());
 				return ps;
 			}
-		});
+		}));
 	}
 	
 	
@@ -133,44 +141,42 @@ public class UserDao {
 	
 	public void deleteAll() throws SQLException {
 //		StatementStrategy st = new DeleteAllStatement(); //선정한 전략 클래스의 오브젝트 생성
-		jdbcContextWithStatementStrategy(new StatementStrategy() {
+		this.jdbcContext.workWithStatementStrategy((new StatementStrategy() {
 			@Override
 			public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
 				return c.prepareStatement("delete from users");
 			}
-			
-		}); //컨텍스트호출. 전략 오브젝트 전달
+		})); //컨텍스트호출. 전략 오브젝트 전달
 	}
 	
 	//컨텍스트에 해당하는 부분을 별도 메서드로 추출
-	public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException {
-		
-		Connection c = null;
-		PreparedStatement ps = null;
-		
-		try {
-			c = dataSource.getConnection();
-			ps = stmt.makePreparedStatement(c);
-			ps.executeUpdate();
-		}catch(SQLException e) {
-			throw e;
-		}finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				}catch(SQLException e) {
-					
-				}
-			}
-			if(c != null) {
-				try {
-					c.close();
-				}catch(SQLException e) {
-				}
-			}
-		}
-		
-	}
+//	public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException {
+//		
+//		Connection c = null;
+//		PreparedStatement ps = null;
+//		
+//		try {
+//			c = dataSource.getConnection();
+//			ps = stmt.makePreparedStatement(c);
+//			ps.executeUpdate();
+//		}catch(SQLException e) {
+//			throw e;
+//		}finally {
+//			if(ps != null) {
+//				try {
+//					ps.close();
+//				}catch(SQLException e) {
+//					
+//				}
+//			}
+//			if(c != null) {
+//				try {
+//					c.close();
+//				}catch(SQLException e) {
+//				}
+//			}
+//		}
+//	}
 	
 	public int getCount() throws SQLException {
 		
