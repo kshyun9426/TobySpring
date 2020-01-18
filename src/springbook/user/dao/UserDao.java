@@ -140,14 +140,22 @@ public class UserDao {
 	
 	
 	public void deleteAll() throws SQLException {
-//		StatementStrategy st = new DeleteAllStatement(); //선정한 전략 클래스의 오브젝트 생성
-		this.jdbcContext.workWithStatementStrategy((new StatementStrategy() {
-			@Override
-			public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
-				return c.prepareStatement("delete from users");
-			}
-		})); //컨텍스트호출. 전략 오브젝트 전달
+		this.jdbcContext.executeSql("delete from users"); //변하는 SQL문장
 	}
+	
+	//복잡한 익명 내부 클래스의 사용을 최소화할 수 있는 방법으로 중복될 가능성이 있는 자주 바뀌디 않는 부분을 분리했다.
+	//이렇게 하면 복잡한 익명 내부클래스인 콜백을 직접 만들 필요조차 없어졌다.
+	//executeSql()는 UserDao만 사용하기에는 아깝다 재사용 가능한 콜백을 담고 있는 메서드라면 DAO가 공유할 수 있는 탬플릿 클래스(=JdbcContext) 안으로 옮겨도 된다.
+//	private void executeSql(final String query) throws SQLException { //변하지 않는 콜백 클래스 정의와 오브젝트 생성
+//		this.jdbcContext.workWithStatementStrategy(
+//			new StatementStrategy() {
+//				@Override
+//				public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
+//					return c.prepareStatement(query);
+//				}
+//			}
+//		);
+//	}
 	
 	//컨텍스트에 해당하는 부분을 별도 메서드로 추출
 //	public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException {
