@@ -4,13 +4,13 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.sql.SQLException;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -174,6 +174,46 @@ public class UserDaoTest {
 		 * 테스트를 작성할때는 부정적인 케이스를 먼저 만드는 습관을 들이는게 좋다.
 		 */
 		dao.get("unknown_id");
+	}
+	
+	@Test
+	public void getAll() throws SQLException{
+		dao.deleteAll();
+		
+		/*
+		 * getAll()에서 query()의 결과에 손댈 것도 아니면서 굳이 검증코드를 추가할까?
+		 * UserDao를 사용하는 쪽의 입장에서 getAll()가 내부적으로 JdbcTemplate을 사용하는지, 개발자가 직접 만든 JDBC코드를 사용하는지 알 수 없고,알 필요도 없다.
+		 * getAll()이라는 메서드가 어떻게 동작하는지에만 관심이 있는것이다.(=DB에 데이터가 없다면 getAll()호출시 어떻게 될까??)
+		 * 따라서 그 예상되는 결과를 모두 검증하는 게 옳다.
+		 */
+		List<User> users0 = dao.getAll();
+		assertThat(users0.size(), is(0));
+		
+		dao.add(user1);
+		
+		List<User> users1 = dao.getAll();
+		assertThat(users1.size(), is(1));
+		checkSameUser(user1, users1.get(0));
+		
+		dao.add(user2);
+		List<User> users2 = dao.getAll();
+		assertThat(users2.size(), is(2));
+		checkSameUser(user1, users2.get(0));
+		checkSameUser(user2, users2.get(1));
+		
+		dao.add(user3);
+		List<User> users3 = dao.getAll();
+		assertThat(users3.size(), is(3));
+		checkSameUser(user3, users3.get(0));
+		checkSameUser(user1, users3.get(1));
+		checkSameUser(user2, users3.get(2));
+	}
+	
+	//User 오브젝트의 내용을 비교하는 검증코드, 테스트에서 반복적으로 사용되므로 분리해놓았다.
+	private void checkSameUser(User user1, User user2) {
+		assertThat(user1.getId(), is(user2.getId()));
+		assertThat(user1.getName(), is(user2.getName()));
+		assertThat(user1.getPassword(), is(user2.getPassword()));
 	}
 	
 }
