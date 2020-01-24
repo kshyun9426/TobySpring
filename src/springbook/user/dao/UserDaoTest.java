@@ -6,12 +6,17 @@ import static org.junit.Assert.assertThat;
 import java.sql.SQLException;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
+import org.springframework.jdbc.support.SQLExceptionTranslator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -33,6 +38,8 @@ public class UserDaoTest {
 //	private ApplicationContext context;
 	@Autowired
 	private UserDao dao;
+	@Autowired
+	private DataSource dataSource;
 	private User user1;
 	private User user2;
 	private User user3;
@@ -216,6 +223,33 @@ public class UserDaoTest {
 		assertThat(user1.getPassword(), is(user2.getPassword()));
 	}
 	
+	/*
+	 * 중복된 키를 가진 정보를 등록했을 때 어떤 예외가 발생하는지를 확인하기 위한 학습 테스트
+	 * (일반적으로 학습테스트는 애플리케이션 코드에 대한 테스트와 분리해서 작성하는게 좋다.)
+	 */
+	@Test(expected=DuplicateKeyException.class)
+	public void duplicateKey() {
+		dao.deleteAll();
+		dao.add(user1);
+		dao.add(user1);
+	}
+	
+	/*
+	 * JDBC외의 기술을 사용할 때도 DuplicateKeyException을 발생시키려면 SQLException을 가져와서 직접 예외 전환을 하는 방법을 생각해 볼 수 있다.
+	 */
+	@Test
+	public void SqlExceptionTranslate() {
+		dao.deleteAll();
+		
+		try {
+			dao.add(user1);
+			dao.add(user1);
+		}catch(DuplicateKeyException ex) {
+			SQLException sqlEx = (SQLException)ex.getRootCause();
+			SQLExceptionTranslator set = new SQLErrorCodeSQLExceptionTranslator(this.dataSource);
+			assertThat(set.translate(null, null, sqlEx),is(DuplicateKeyException.class));
+		}
+	}
 }
 
 
