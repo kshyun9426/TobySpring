@@ -20,6 +20,7 @@ import org.springframework.jdbc.support.SQLExceptionTranslator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import springbook.user.domain.Level;
 import springbook.user.domain.User;
 
 /*
@@ -101,9 +102,9 @@ public class UserDaoTest {
 //		ApplicationContext context = new GenericXmlApplicationContext("/springbook/user/dao/applicationContext.xml");
 //		this.dao = context.getBean("userDao", UserDao.class);
 		
-		this.user1 = new User("gyumee", "박성철", "springno1");
-		this.user2 = new User("leegw700", "이길원", "springno2");
-		this.user3 = new User("bumjin", "박범진", "springno3");
+		this.user1 = new User("gyumee", "박성철", "springno1", Level.BASIC, 1, 0);
+		this.user2 = new User("leegw700", "이길원", "springno2", Level.SILVER, 55, 10);
+		this.user3 = new User("bumjin", "박범진", "springno3", Level.GOLD, 100, 40);
 	}
 	
 	/*
@@ -133,12 +134,10 @@ public class UserDaoTest {
 		
 		//get()메서드에 대한 테스트 검증
 		User userGet1 = dao.get(user1.getId());
-		assertThat(userGet1.getName(), is(user1.getName()));
-		assertThat(userGet1.getPassword(),is(user1.getPassword()));
+		checkSameUser(userGet1, user1);
 		
 		User userGet2 = dao.get(user2.getId());
-		assertThat(userGet2.getName(),is(user2.getName()));
-		assertThat(userGet2.getPassword(),is(user2.getPassword()));
+		checkSameUser(userGet2, user2);
 	}
 	
 	/*
@@ -221,6 +220,9 @@ public class UserDaoTest {
 		assertThat(user1.getId(), is(user2.getId()));
 		assertThat(user1.getName(), is(user2.getName()));
 		assertThat(user1.getPassword(), is(user2.getPassword()));
+		assertThat(user1.getLevel(), is(user2.getLevel()));
+		assertThat(user1.getLogin(), is(user2.getLogin()));
+		assertThat(user1.getRecommend(), is(user2.getRecommend()));
 	}
 	
 	/*
@@ -250,6 +252,36 @@ public class UserDaoTest {
 			assertThat(set.translate(null, null, sqlEx),is(DuplicateKeyException.class));
 		}
 	}
+	
+	
+	@Test
+	public void update() {
+		/*
+		 * update()테스트에서 바뀐 로우의 내용만 확인해보면 정상적으로 동작 한 것으로 보인다. 
+		 * 현재 update()테스트는 수정할 로우의 내용이 바뀐 것만 확인할 뿐이지,수정하지 않아야 할 로우의 내용이 그대로 남아 있는지는 확인해주지 못한다는 문제가 있다. 
+		 * 그래서 사용자를 두명 등록해놓고, 그 중 하나만 수정한 뒤에 수정된 사용자와 수정하지 않은 사용자의 정보를 모두 확인하면 된다.
+		 */
+		dao.deleteAll();
+		
+		dao.add(user1);
+		dao.add(user2);
+		
+		//user1이라는 텍스트 픽스쳐는 인스턴스 변수로 만들어놓은 것인데, 이를 직접 변경해도 괜찮을까? 상관없다.
+		//테스트 메서드가 실행될 때마다 UserDaoTest오브젝트는 새로 만들어지고, setUp()메서드도 다시 불려서 초기화 될테니 내용을 변경해도 상관없다.
+		user1.setName("오민규");
+		user1.setPassword("springno6");
+		user1.setLevel(Level.GOLD);
+		user1.setLogin(1000);
+		user1.setRecommend(999);
+		dao.update(user1);
+		
+		User user1update = dao.get(user1.getId());
+		checkSameUser(user1, user1update);
+		User user2update = dao.get(user2.getId());
+		checkSameUser(user2, user2update);
+	}
+	
+	
 }
 
 
