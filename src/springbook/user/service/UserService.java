@@ -8,6 +8,10 @@ import springbook.user.domain.User;
 
 public class UserService {
 	
+	//상수의 도입
+	public static final int MIN_LOGCOUNT_FOR_SILVER = 50;
+	public static final int MIN_RECOMMEND_FOR_GOLD = 30;
+	
 	UserDao userDao;
 
 	public void setUserDao(UserDao userDao) {
@@ -63,9 +67,9 @@ public class UserService {
 		Level currentLevel = user.getLevel();
 		switch(currentLevel) { //레벨별로 구분해서 조건을 판단한다.
 		case BASIC :
-			return (user.getLogin() >= 50);
+			return (user.getLogin() >= MIN_LOGCOUNT_FOR_SILVER);
 		case SILVER : 
-			return (user.getRecommend() >= 30);
+			return (user.getRecommend() >= MIN_RECOMMEND_FOR_GOLD);
 		case GOLD : 
 			return false;
 		default : 
