@@ -1,6 +1,12 @@
 package springbook.user.service;
 
+import java.sql.Connection;
 import java.util.List;
+
+import javax.sql.DataSource;
+
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
@@ -13,9 +19,14 @@ public class UserService {
 	public static final int MIN_RECOMMEND_FOR_GOLD = 30;
 	
 	UserDao userDao;
-
+	private DataSource dataSource;
+	
 	public void setUserDao(UserDao userDao) {
 		this.userDao = userDao;
+	}
+	
+	public void setDataSource(DataSource dataSource) {
+		this.dataSource = dataSource;
 	}
 	
 	/*
@@ -50,16 +61,35 @@ public class UserService {
 //	}
 	
 	/*
-	 * upgradeLevels() 리팩토링
-	 * 추상적인 레벨에서 로직을 작성
+	 * 1.upgradeLevels() 리팩토링
+	 * 	-추상적인 레벨에서 로직을 작성
+	 * 
+	 * 2.트랜잭션 동기화 적용
 	 */
-	public void upgradeLevels() {
-		List<User> users = userDao.getAll();
-		for(User user : users) {
-			if(canUpgradeLevel(user)) { //업그레이드가 가능한지 확인하고
-				upgradeLevel(user); //가능하면 업그레이드
+	public void upgradeLevels() throws Exception {
+		TransactionSynchronizationManager.initSynchronization(); //트랜잭션 동기화 관리자를 이용해 동기화 작업을 초기화한다.
+		//DB커넥션을 생성하고 트랜잭션을 시작한다. 이후의  DAO작업은 모두 여기서 시작한 트랜잭션 안에서 진행된다.
+		Connection c = DataSourceUtils.getConnection(dataSource); 
+		//DataSourceUtils의 getConnection()은 Connection오브젝트를 생성해 줄 뿐만 아니라 트랜잭션 동기화에 사용하도록 저장소에 바인딩해준다.
+		c.setAutoCommit(false);
+		
+		try {
+			List<User> users = userDao.getAll();
+			for(User user : users) {
+				if(canUpgradeLevel(user)) { //업그레이드가 가능한지 확인하고
+					upgradeLevel(user); //가능하면 업그레이드
+				}
 			}
+			c.commit(); //정상적으로 작업을 마치면 트랜잭션 커밋
+		}catch(Exception e) {
+			c.rollback(); //예외가 발생하면 롤백한다.
+			throw e;
+		}finally {
+			DataSourceUtils.releaseConnection(c,dataSource); //스프링 유틸리티 메서드를 이용해 DB커넥션은 안전하게 닫는다.
+			TransactionSynchronizationManager.unbindResource(this.dataSource); 
+			TransactionSynchronizationManager.clearSynchronization(); //동기화 작업 종료 및 정리
 		}
+		
 	}
 	
 	

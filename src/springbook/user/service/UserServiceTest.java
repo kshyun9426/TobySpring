@@ -10,6 +10,8 @@ import static springbook.user.service.UserService.MIN_RECOMMEND_FOR_GOLD;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +32,9 @@ public class UserServiceTest {
 	
 	@Autowired
 	private UserService userService;
+	
+	@Autowired
+	private DataSource dataSource;
 	
 	List<User> users;
 	
@@ -58,7 +63,7 @@ public class UserServiceTest {
 	}
 	
 	@Test
-	public void upgradeLevels() {
+	public void upgradeLevels() throws Exception {
 		userDao.deleteAll();
 		for(User user : users) {
 			userDao.add(user);
@@ -122,12 +127,14 @@ public class UserServiceTest {
 	
 	//강제 예외를 발생 시키기 위한 테스트
 	@Test
-	public void upgradeAllOrNothing() {
+	public void upgradeAllOrNothing() throws Exception {
 		UserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao);
+		testUserService.setDataSource(this.dataSource);
 		
 		userDao.deleteAll();
-		for(User user : users) userDao.add(user);
+		for(User user : users) 
+			userDao.add(user);
 		
 		try {
 			testUserService.upgradeLevels();
@@ -138,7 +145,6 @@ public class UserServiceTest {
 		
 		//예외가 발생하기 전에 레벨 변경이 있었던 사용자의 레벨이 처음 상태로 바뀌었나 확인(핵심)
 		checkLevelUpgraded(users.get(1), false);
-		
 	}
 	
 	//테스트용 클래스(UserService 대역)
