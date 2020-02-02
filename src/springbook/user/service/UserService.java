@@ -1,11 +1,14 @@
 package springbook.user.service;
 
-import java.sql.Connection;
 import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import springbook.user.dao.UserDao;
@@ -19,15 +22,19 @@ public class UserService {
 	public static final int MIN_RECOMMEND_FOR_GOLD = 30;
 	
 	UserDao userDao;
-	private DataSource dataSource;
+	private PlatformTransactionManager transactionManager; //PlatformTransactionManager의 경우는 관례적으로 transactionManager라는 이름을 사용
 	
+	
+	
+	public void setTransactionManager(PlatformTransactionManager transactionManager) {
+		this.transactionManager = transactionManager;
+	}
+
+
 	public void setUserDao(UserDao userDao) {
 		this.userDao = userDao;
 	}
 	
-	public void setDataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
-	}
 	
 	/*
 	 * 리팩토링 전 upgradeLevels()메서드의 문제점
@@ -65,14 +72,50 @@ public class UserService {
 	 * 	-추상적인 레벨에서 로직을 작성
 	 * 
 	 * 2.트랜잭션 동기화 적용
+	 * 
+	 * 3.2로 인해서 JDBC에 종속적인 Conneciton을 이용한 트랜잭션 코드가 UserService에 등장하면서부터 UserService는 UserDaoJdbc에 간접적으로 의존하는 코드가 돼버림
+	 * 
+	 */
+//	public void upgradeLevels() throws Exception {
+//		TransactionSynchronizationManager.initSynchronization(); //트랜잭션 동기화 관리자를 이용해 동기화 작업을 초기화한다.
+//		//DB커넥션을 생성하고 트랜잭션을 시작한다. 이후의  DAO작업은 모두 여기서 시작한 트랜잭션 안에서 진행된다.
+//		Connection c = DataSourceUtils.getConnection(dataSource); 
+//		//DataSourceUtils의 getConnection()은 Connection오브젝트를 생성해 줄 뿐만 아니라 트랜잭션 동기화에 사용하도록 저장소에 바인딩해준다.
+//		c.setAutoCommit(false);
+//		
+//		try {
+//			List<User> users = userDao.getAll();
+//			for(User user : users) {
+//				if(canUpgradeLevel(user)) { //업그레이드가 가능한지 확인하고
+//					upgradeLevel(user); //가능하면 업그레이드
+//				}
+//			}
+//			c.commit(); //정상적으로 작업을 마치면 트랜잭션 커밋
+//		}catch(Exception e) {
+//			c.rollback(); //예외가 발생하면 롤백한다.
+//			throw e;
+//		}finally {
+//			DataSourceUtils.releaseConnection(c,dataSource); //스프링 유틸리티 메서드를 이용해 DB커넥션은 안전하게 닫는다.
+//			TransactionSynchronizationManager.unbindResource(this.dataSource); 
+//			TransactionSynchronizationManager.clearSynchronization(); //동기화 작업 종료 및 정리
+//		}
+//	}
+	
+	//스프링의 트랜잭션 추상화 API를 적용
+	/*
+	 * 스프링이 제공하는 트랜잭션 경계설정을 위한 추상 인터페이스는 PlatformTransactionManager다.(JDBC의 로컬 트랜잭션을 이용한다면 DataSourceTransactionManager사용)
+	 * JDBC를 이용하는 경우에는 먼저 Connection을 생성하고 나서 트랜잭션을 시작했다. 하지만 PlatformTransactionManager에서는 트랜잭션을 가져오는 요청인 getTransaction()
+	 * 메서드를 호출하기만 하면 된다. 필요에 따라 트랜잭션 매니저가 DB커넥션을 가져오는 작업도 같이 수행해주기 때문이다. 
 	 */
 	public void upgradeLevels() throws Exception {
-		TransactionSynchronizationManager.initSynchronization(); //트랜잭션 동기화 관리자를 이용해 동기화 작업을 초기화한다.
-		//DB커넥션을 생성하고 트랜잭션을 시작한다. 이후의  DAO작업은 모두 여기서 시작한 트랜잭션 안에서 진행된다.
-		Connection c = DataSourceUtils.getConnection(dataSource); 
-		//DataSourceUtils의 getConnection()은 Connection오브젝트를 생성해 줄 뿐만 아니라 트랜잭션 동기화에 사용하도록 저장소에 바인딩해준다.
-		c.setAutoCommit(false);
-		
+//		PlatformTransactionManager transactionManager = new DataSourceTransactionManager(); //JDBC트랜잭션 추상 오브젝트 생성 
+								//->어떤 트랜잭션 매니저 구현 클래스를 사용할지 UserService코드가 알고 있는 것은 DI원칙에 위배된다.
+								//자신이 사용할 구체적인 클래스를 스스로 결정하고 생성하지 말고 컨테이너를 통해 외부에서 제공받게 되는 스프링DI의 방식으로 바꿔야한다.
+		TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition()); //트랜잭션 시작
+								//파라미터로 넘기는 DefaultTransactionDefinition 오브젝트는 트랜잭션에 대한 속성을 담고 있다.
+								//시작된 트랜잭션은 TransactionStatus타입의 변수에 저장되게 하고, TransactionStatus는 트랜잭션에 대한 조작이 필요할 때 
+								//PlatformTransactionManager메서드의 파라미터로 전달해주면 된다.
+		//트랜잭션 안에서 진행되는 작업
 		try {
 			List<User> users = userDao.getAll();
 			for(User user : users) {
@@ -80,16 +123,11 @@ public class UserService {
 					upgradeLevel(user); //가능하면 업그레이드
 				}
 			}
-			c.commit(); //정상적으로 작업을 마치면 트랜잭션 커밋
+			transactionManager.commit(status); //트랜잭션 커밋
 		}catch(Exception e) {
-			c.rollback(); //예외가 발생하면 롤백한다.
+			transactionManager.rollback(status); //트랜잭션 롤백
 			throw e;
-		}finally {
-			DataSourceUtils.releaseConnection(c,dataSource); //스프링 유틸리티 메서드를 이용해 DB커넥션은 안전하게 닫는다.
-			TransactionSynchronizationManager.unbindResource(this.dataSource); 
-			TransactionSynchronizationManager.clearSynchronization(); //동기화 작업 종료 및 정리
 		}
-		
 	}
 	
 	
