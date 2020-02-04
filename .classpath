@@ -18,5 +18,8 @@
 	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/com.springsource.org.junit-4.7.0.jar" sourcepath=""/>
 	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.transaction-3.0.7.RELEASE.jar"/>
 	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.test-3.0.7.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/com.springsource.javax.activation-1.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/com.springsource.javax.mail-1.4.0.jar"/>
+	<classpathentry kind="lib" path="C:/TobySpring/jarfiles/org.springframework.context.support-3.0.7.RELEASE.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
