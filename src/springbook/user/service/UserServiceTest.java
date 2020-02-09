@@ -4,9 +4,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static springbook.user.service.UserService.MIN_LOGCOUNT_FOR_SILVER;
-import static springbook.user.service.UserService.MIN_RECOMMEND_FOR_GOLD;
+import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
+import static springbook.user.service.UserServiceImpl.MIN_RECOMMEND_FOR_GOLD;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,6 +15,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailException;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -23,17 +28,23 @@ import springbook.user.domain.Level;
 import springbook.user.domain.User;;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = "/springbook/user/dao/applicationContext.xml")
+@ContextConfiguration(locations = "/springbook/user/dao/test-applicationContext.xml")
 public class UserServiceTest {
 	
 	@Autowired
 	private UserDao userDao;
 	
 	@Autowired
-	private UserService userService;
+	private UserServiceImpl userService;
 	
 	@Autowired
 	private PlatformTransactionManager transactionManager;
+	
+	@Autowired
+	MailSender mailSender;
+	
+	@Autowired
+	UserServiceImpl userServiceImpl;
 	
 	List<User> users;
 	
@@ -53,20 +64,24 @@ public class UserServiceTest {
 		users = Arrays.asList(
 					//업그레이드 조건인 로그인 횟수와 추천 횟수가 애플리케이션 코드와 테스트 코드에 중복돼서 나타난다.
 					//테스트와 애플리케이션 코드에 나타난 이런 숫자의 중복도 제거해줘야 한다. 한 가지 변경 이유가 발생했을 때 여러 군데를 고치게 만든다면 중복이기 때문이다.
-					new User("bumjin", "박범진", "p1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER-1, 0), //50을 기준으로
-					new User("joytouch", "강명선", "p2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
-					new User("erwins", "신승한", "p3", Level.SILVER, 60, MIN_RECOMMEND_FOR_GOLD-1),//30을 기준으로
-					new User("madnite1", "이상호", "p4", Level.SILVER, 60, MIN_RECOMMEND_FOR_GOLD),
-					new User("green", "오민규", "p5", Level.GOLD, 100, Integer.MAX_VALUE)
+					new User("bumjin", "박범진", "p1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER-1, 0, "bumjin@naver.com"), //50을 기준으로
+					new User("joytouch", "강명선", "p2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0, "joy@daum.net"),
+					new User("erwins", "신승한", "p3", Level.SILVER, 60, MIN_RECOMMEND_FOR_GOLD-1, "erwins@google.com"),//30을 기준으로
+					new User("madnite1", "이상호", "p4", Level.SILVER, 60, MIN_RECOMMEND_FOR_GOLD, "madnite1@naver.com"),
+					new User("green", "오민규", "p5", Level.GOLD, 100, Integer.MAX_VALUE, "green@google.com")
 				);
 	}
 	
 	@Test
+	@DirtiesContext //컨텍스트의 DI설정을 변경하는 테스트라는것을 알림
 	public void upgradeLevels() throws Exception {
 		userDao.deleteAll();
 		for(User user : users) {
 			userDao.add(user);
 		}
+		
+		MockMailSender mockMailSender = new MockMailSender();
+		userService.setMailSender(mockMailSender); //메일 발송 결과를 테스트할 수 있도록 목 오브젝트를 만들어 userService의 의존 오브젝트로 주입해준다.
 		
 		userService.upgradeLevels();
 		
@@ -84,6 +99,14 @@ public class UserServiceTest {
 		checkLevelUpgraded(users.get(2), false);
 		checkLevelUpgraded(users.get(3), true);
 		checkLevelUpgraded(users.get(4), false);
+		
+		
+		//목 오브젝트에 저장된 메일 수신자 목록을 가져와 업그레이드 대상과 일치하는지 확인
+		List<String> request = mockMailSender.getRequests();
+		assertThat(request.size(), is(2));
+		assertThat(request.get(0), is(users.get(1).getEmail()));
+		assertThat(request.get(1), is(users.get(3).getEmail()));
+		
 	}
 	
 	//checkLevel()의 개선 전
@@ -127,16 +150,20 @@ public class UserServiceTest {
 	//강제 예외를 발생 시키기 위한 테스트
 	@Test
 	public void upgradeAllOrNothing() throws Exception {
-		UserService testUserService = new TestUserService(users.get(3).getId());
+		TestUserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao);
-		testUserService.setTransactionManager(transactionManager);
+		testUserService.setMailSender(mailSender);
+		
+		UserServiceTx txUserService = new UserServiceTx();
+		txUserService.setTransactionManager(transactionManager);
+		txUserService.setUserService(testUserService);
 		
 		userDao.deleteAll();
 		for(User user : users) 
 			userDao.add(user);
 		
 		try {
-			testUserService.upgradeLevels();
+			txUserService.upgradeLevels();
 			fail("TestUserServiceException expected"); //TestUserService는 업그레이드 작업중에 예외가 발생해야 한다. 정상 종료라면 문제가 있으니 실패
 		}catch(TestUserServiceException e) { //TestService가 던져주는 예외를 잡아서 계속 진행하도록 한다. 그 외에 예외라면 테스트 실패
 			
@@ -147,7 +174,7 @@ public class UserServiceTest {
 	}
 	
 	//테스트용 클래스(UserService 대역)
-	static class TestUserService extends UserService {
+	static class TestUserService extends UserServiceImpl {
 		private String id;
 		
 		private TestUserService(String id) {
@@ -161,6 +188,31 @@ public class UserServiceTest {
 	}
 	
 	static class TestUserServiceException extends RuntimeException {
+		
+	}
+	
+	/*
+	 * 목 오브젝트를 이용한 테스트
+	 * UserService의 코드가 정상적으로 수행되도록 돕는 역할이 우선이므로 메일을 발송하는 기능은 없다.
+	 * 대신 테스트 대상이 넘겨주는 출력 값을 보관해두는 기능을 추가했다.
+	 */
+	static class MockMailSender implements MailSender {
+
+		private List<String> requests = new ArrayList<>();
+		
+		public List<String> getRequests(){
+			return requests;
+		}
+		
+		@Override
+		public void send(SimpleMailMessage mailMessage) throws MailException {
+			requests.add(mailMessage.getTo()[0]);
+		}
+
+		@Override
+		public void send(SimpleMailMessage[] mailMessage) throws MailException {
+			
+		}
 		
 	}
 }
