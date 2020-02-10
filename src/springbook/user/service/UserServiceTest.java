@@ -75,15 +75,16 @@ public class UserServiceTest {
 	@Test
 	@DirtiesContext //컨텍스트의 DI설정을 변경하는 테스트라는것을 알림
 	public void upgradeLevels() throws Exception {
-		userDao.deleteAll();
-		for(User user : users) {
-			userDao.add(user);
-		}
+		
+		UserServiceImpl userServiceImpl = new UserServiceImpl(); //고립된 테스트에서는 테스트 대상 오브젝트를  직접 생성하면 된다.
+		
+		MockUserDao mockUserDao = new MockUserDao(this.users);
+		userServiceImpl.setUserDao(mockUserDao); //목오브젝트로 만든 UserDao를 직접 DI해준다.
 		
 		MockMailSender mockMailSender = new MockMailSender();
-		userService.setMailSender(mockMailSender); //메일 발송 결과를 테스트할 수 있도록 목 오브젝트를 만들어 userService의 의존 오브젝트로 주입해준다.
+		userServiceImpl.setMailSender(mockMailSender); //메일 발송 결과를 테스트할 수 있도록 목 오브젝트를 만들어 userService의 의존 오브젝트로 주입해준다.
 		
-		userService.upgradeLevels();
+		userServiceImpl.upgradeLevels();
 		
 		//각 사용자별로 업그레이드 후의 예상 레벨을 검증한다. 
 //		checkLevel(users.get(0), Level.BASIC);
@@ -94,19 +95,27 @@ public class UserServiceTest {
 		
 		//위 의 테스트에는 checkLevel()메서드를 호출할 때 일일이 다음 단계의 레벨이 무엇인지 넣어줬다. 이것도 중복이다. Level이 갖고 있어야 할 다음 레벨이 무엇인가 하는
 		//정보를 테스트에 직접 넣어둘 이유가 없다.
-		checkLevelUpgraded(users.get(0), false);
-		checkLevelUpgraded(users.get(1), true);
-		checkLevelUpgraded(users.get(2), false);
-		checkLevelUpgraded(users.get(3), true);
-		checkLevelUpgraded(users.get(4), false);
+//		checkLevelUpgraded(users.get(0), false);
+//		checkLevelUpgraded(users.get(1), true);
+//		checkLevelUpgraded(users.get(2), false);
+//		checkLevelUpgraded(users.get(3), true);
+//		checkLevelUpgraded(users.get(4), false);
 		
+		List<User> updated = mockUserDao.getUpdated(); //MockUserDao로부터 업데이트 결과를 가져온다.
+		assertThat(updated.size(), is(2));
+		checkUserAndLevel(updated.get(0), "joytouch", Level.SILVER); //업데이트 횟수와 정보를 확인한다.
+		checkUserAndLevel(updated.get(1), "madnite1", Level.GOLD);
 		
 		//목 오브젝트에 저장된 메일 수신자 목록을 가져와 업그레이드 대상과 일치하는지 확인
 		List<String> request = mockMailSender.getRequests();
 		assertThat(request.size(), is(2));
 		assertThat(request.get(0), is(users.get(1).getEmail()));
 		assertThat(request.get(1), is(users.get(3).getEmail()));
-		
+	}
+	
+	private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
+		assertThat(updated.getId(), is(expectedId));
+		assertThat(updated.getLevel(), is(expectedLevel));
 	}
 	
 	//checkLevel()의 개선 전
@@ -213,6 +222,58 @@ public class UserServiceTest {
 		public void send(SimpleMailMessage[] mailMessage) throws MailException {
 			
 		}
+		
+	}
+	
+	/*
+	 * UserDao타입의 테스트 대역
+	 */
+	static class MockUserDao implements UserDao {
+		
+		private List<User> users;
+		private List<User> updated = new ArrayList<>();
+
+		private MockUserDao(List<User> users) {
+			this.users = users;
+		}
+		
+		public List<User> getUpdated(){
+			return this.updated;
+		}
+		
+		@Override
+		public List<User> getAll() {
+			return this.users;
+		}
+		
+		@Override
+		public void update(User user) {
+			updated.add(user);
+		}
+		
+		//인터페이스를 구현하려면 인터페이스 내의 모든 메서드를 만들어줘야 한다는 부담이 있다. 테스트 중에 사용할 것은 제한적인데도 불구하고 말이다.
+		//사용하지 않을 메서드도 구현해줘야 한다면 UnsupportedOperationException을 던지도록 만드는 편이 좋다.
+		@Override
+		public void add(User user) { 
+			throw new UnsupportedOperationException(); 
+		}
+
+		@Override
+		public User get(String id) {
+			 throw new UnsupportedOperationException(); 
+		}
+
+		@Override
+		public void deleteAll() {
+			 throw new UnsupportedOperationException(); 
+		}
+
+		@Override
+		public int getCount() {
+			 throw new UnsupportedOperationException(); 
+		}
+
+		
 		
 	}
 }
