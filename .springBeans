@@ -10,6 +10,7 @@
 		<config>src/springbook/user/dao/applicationContext.xml</config>
 		<config>src/springbook/user/dao/test-applicationContext.xml</config>
 		<config>src/springbook/learningtest/junit/junit.xml</config>
+		<config>src/springbook/learningtest/factorybean/FactoryBeanTest-context.xml</config>
 	</configs>
 	<autoconfigs>
 	</autoconfigs>
