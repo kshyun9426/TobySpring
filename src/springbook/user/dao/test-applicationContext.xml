@@ -16,12 +16,14 @@
 		<property name="dataSource" ref="dataSource"/>
 	</bean>
 	
+	<!-- 
 	<bean id="userService" class="springbook.user.service.TxProxyFactoryBean">
 		<property name="transactionManager" ref="transactionManager"/>
 		<property name="target" ref="userServiceImpl"/>
 		<property name="pattern" value="upgradeLevels"/>
 		<property name="serviceInterface" value="springbook.user.service.UserService"/>
 	</bean>
+	 -->
 	
 	<bean id="userServiceImpl" class="springbook.user.service.UserServiceImpl">
 		<property name="userDao" ref="userDao"></property>
@@ -34,5 +36,62 @@
 	
 	<bean id="mailSender" class="springbook.user.service.DummyMailSender"/>
 
+	<!-- 어드바이스 빈 설정 -->
+	<bean id="transactionAdvice" class="springbook.user.service.TransactionAdvice">
+		<property name="transactionManager" ref="transactionManager"/>
+	</bean>
+	
+	<!-- 포인트컷 설정(클래스 필터가 디폴트로 모든 클래스로 설정되어있음) -->
+	<!-- 
+	<bean id="transactionPointcut" class="org.springframework.aop.support.NameMatchMethodPointcut">
+		<property name="mappedName" value="upgrade*"/>
+	</bean>
+	 -->
+	 
+	 <!-- 포인트컷 설정(클래스 필터가 설정된) -->
+	 <bean id="transactionPointcut" class="springbook.learningtest.jdk.NameMatchClassMethodPointcut">
+	 	<property name="mappedClassName" value="*ServiceImpl"/>
+	 	<property name="mappedName" value="upgrade*"/>
+	 </bean>
+	 
+	<!-- 어드바이저 설정 -->
+	<bean id="transactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
+		<property name="advice" ref="transactionAdvice"/>
+		<property name="pointcut" ref="transactionPointcut"/>
+	</bean>
+	
+	<!-- ProxyFactoryBean 설정 -->
+	<bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
+		<property name="target" ref="userServiceImpl"/>
+		<property name="interceptorNames"> <!-- 어드바이저와 어드바이스를 동시에 설정해줄수 있는 프로퍼티 -->
+			<list>
+				<value>transactionAdvisor</value>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- DefaultAdvisorAutoProxyCreator 빈 등록 -->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
 	
 </beans>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

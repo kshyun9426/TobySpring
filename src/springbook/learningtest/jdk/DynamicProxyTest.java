@@ -8,7 +8,11 @@ import java.lang.reflect.Proxy;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.Test;
+import org.springframework.aop.ClassFilter;
+import org.springframework.aop.Pointcut;
 import org.springframework.aop.framework.ProxyFactoryBean;
+import org.springframework.aop.support.DefaultPointcutAdvisor;
+import org.springframework.aop.support.NameMatchMethodPointcut;
 
 public class DynamicProxyTest {
 	
@@ -50,7 +54,6 @@ public class DynamicProxyTest {
 	}
 	
 	static class HelloTarget implements Hello {
-
 		@Override
 		public String sayHello(String name) {
 			return "Hello " + name;
@@ -65,11 +68,85 @@ public class DynamicProxyTest {
 		public String sayThankYou(String name) {
 			return "Thank You " + name;
 		}
-		
 	}
 	
 	
+	@Test
+	public void pointcutAdvisor() {
+		ProxyFactoryBean pfBean = new ProxyFactoryBean();
+		pfBean.setTarget(new HelloTarget());
+		
+		//메서드 이름을 비교해서 대상을 선정하는 알고리즘을 제공하는 포인트컷 생성
+		NameMatchMethodPointcut pointcut = new NameMatchMethodPointcut(); 
+		pointcut.setMappedName("sayH*"); //이름 비교조건 설정 sayH로 시작하는 모든 메서드를 선택하게 한다.
+		
+		pfBean.addAdvisor(new DefaultPointcutAdvisor(pointcut, new UppercaseAdvice())); //포인트컷과 어드바이스를 Advisor로 묶어서 한 번에 추가
+		
+		Hello proxiedHello = (Hello)pfBean.getObject();
+		
+		assertThat(proxiedHello.sayHello("Toby"), is("HELLO TOBY"));
+		assertThat(proxiedHello.sayHi("Toby"), is("HI TOBY"));
+		
+		//메서드 이름이 포인트컷의 선정조건에 맞지 않으므로, 부가기능이 적용되지 않는다.
+		assertThat(proxiedHello.sayThankYou("Toby"), is("Thank You Toby")); 
+	}
+	
+	
+	/*
+	 * 확장 포인트컷 테스트
+	 */
+	@Test
+	public void classNamePointcutAdvisor() {
+		NameMatchMethodPointcut classMethodPointcut = new NameMatchMethodPointcut() {
+			@Override
+			public ClassFilter getClassFilter() {
+				return new ClassFilter() {
+					@Override
+					public boolean matches(Class<?> clazz) {
+						return clazz.getSimpleName().startsWith("HelloT"); //클래스 이름이 HelloT로 시작하는 것만 선정
+					}
+				};
+			}
+		};
+		classMethodPointcut.setMappedName("sayH*"); //sayH로 시작하는 메서드 이름을 가진 메서드만 선정한다.
+		
+		
+		//테스트
+		checkAdviced(new HelloTarget(), classMethodPointcut, true); //적용클래스
+		
+		class HelloWorld extends HelloTarget {}
+		checkAdviced(new HelloWorld(), classMethodPointcut, false); //적용클래스가 아님
+		
+		class HelloToby extends HelloTarget {}
+		checkAdviced(new HelloToby(), classMethodPointcut, true); //적용클래스
+	}
+	
+	private void checkAdviced(Object target, Pointcut pointcut, boolean adviced) {
+		ProxyFactoryBean pfBean = new ProxyFactoryBean();
+		pfBean.setTarget(target);
+		pfBean.addAdvisor(new DefaultPointcutAdvisor(pointcut, new UppercaseAdvice()));
+		Hello proxiedHello = (Hello)pfBean.getObject();
+		
+		if(adviced) { //advice적용대상이라면
+			assertThat(proxiedHello.sayHello("Toby"), is("HELLO TOBY")); 		//메서드 선정 방식을 통해 어드바이스 적용됨
+			assertThat(proxiedHello.sayHi("Toby"), is("HI TOBY"));		 		//메서드 선정 방식을 통해 어드바이스 적용됨
+			assertThat(proxiedHello.sayThankYou("Toby"), is("Thank You Toby")); //메서드 선정 방식에 의해 적용 안됨
+		}else { //advice적용대상이 아니라면
+			assertThat(proxiedHello.sayHello("Toby"), is("Hello Toby")); 		
+			assertThat(proxiedHello.sayHi("Toby"), is("Hi Toby"));		 		
+			assertThat(proxiedHello.sayThankYou("Toby"), is("Thank You Toby")); 
+		}
+	}
+	
 }
+
+
+
+
+
+
+
+
 
 
 

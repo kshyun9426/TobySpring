@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 import static springbook.user.service.UserServiceImpl.MIN_RECOMMEND_FOR_GOLD;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailException;
@@ -31,7 +31,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import springbook.learningtest.jdk.TransactionHandler;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;;
@@ -47,7 +46,7 @@ public class UserServiceTest {
 	private UserDao userDao;
 	
 	@Autowired
-	private UserServiceImpl userService;
+	private UserService userService;
 	
 	@Autowired
 	private PlatformTransactionManager transactionManager;
@@ -212,7 +211,10 @@ public class UserServiceTest {
 //		txUserService.setUserService(testUserService);
 		
 		//팩토리 빈 자체를 가져와야 하므로 빈 이름에 &를  반드시 넣어줘야 한다.
-		TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class); //테스트용 타겟 주입
+//		TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class); //테스트용 타겟 주입
+		
+		//userService빈은 스프링의 ProxyFactoryBean이다.
+		ProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", ProxyFactoryBean.class); 
 		txProxyFactoryBean.setTarget(testUserService);
 		UserService txUserService = (UserService)txProxyFactoryBean.getObject(); 
 													//변경된 타겟 설정을 이용해서 트랜잭션 다이내믹 프록시 오브젝트를 다시 생성한다.
