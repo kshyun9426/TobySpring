@@ -25,10 +25,11 @@
 	</bean>
 	 -->
 	
-	<bean id="userServiceImpl" class="springbook.user.service.UserServiceImpl">
+	<bean id="userService" class="springbook.user.service.UserServiceImpl">
 		<property name="userDao" ref="userDao"></property>
 		<property name="mailSender" ref="mailSender"></property>
 	</bean>
+	
 	
 	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="dataSource"></property>
@@ -60,18 +61,28 @@
 		<property name="pointcut" ref="transactionPointcut"/>
 	</bean>
 	
-	<!-- ProxyFactoryBean 설정 -->
+	<!-- ProxyFactoryBean 설정 
 	<bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
 		<property name="target" ref="userServiceImpl"/>
-		<property name="interceptorNames"> <!-- 어드바이저와 어드바이스를 동시에 설정해줄수 있는 프로퍼티 -->
+		<property name="interceptorNames"> 
 			<list>
 				<value>transactionAdvisor</value>
 			</list>
 		</property>
 	</bean>
-	
+	--> 
+	 
+	 
 	<!-- DefaultAdvisorAutoProxyCreator 빈 등록 -->
 	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+	
+	<!-- 테스트용 UserService의 등록 -->
+	<!-- 스태틱 멤버 클래스는 $로 지정한다. -->
+	<bean id="testUserService" 
+		  class="springbook.user.service.UserServiceTest$TestUserServiceImpl"
+		  parent="userService"/> <!-- 프로퍼티 정의를 포함해서 userService빈의 설정을 상속받는다. -->
+	
+	
 	
 </beans>
 

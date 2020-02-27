@@ -46,16 +46,19 @@ public class UserServiceTest {
 	private UserDao userDao;
 	
 	@Autowired
-	private UserService userService;
+	UserService userService;
 	
 	@Autowired
-	private PlatformTransactionManager transactionManager;
+	UserService testUserService; //같은 타입의 빈이 두 개 존재하기 때문에 필드 이름을 기준으로 주입될 빈이 결정된다
+	
+//	@Autowired
+//	private PlatformTransactionManager transactionManager;
 	
 	@Autowired
 	MailSender mailSender;
 	
-	@Autowired
-	UserServiceImpl userServiceImpl;
+//	@Autowired
+//	UserServiceImpl userServiceImpl;
 	
 	List<User> users;
 	
@@ -200,9 +203,10 @@ public class UserServiceTest {
 	
 	//강제 예외를 발생 시키기 위한 테스트
 	@Test
-	@DirtiesContext //컨텍스트 무효화 애노테이션
+//	@DirtiesContext //컨텍스트 무효화 애노테이션
 	public void upgradeAllOrNothing() throws Exception {
-		TestUserService testUserService = new TestUserService(users.get(3).getId());
+//		TestUserServiceImpl testUserService = new TestUserServiceImpl(users.get(3).getId());
+		TestUserServiceImpl testUserService = new TestUserServiceImpl();
 		testUserService.setUserDao(this.userDao);
 		testUserService.setMailSender(mailSender);
 		
@@ -214,9 +218,9 @@ public class UserServiceTest {
 //		TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class); //테스트용 타겟 주입
 		
 		//userService빈은 스프링의 ProxyFactoryBean이다.
-		ProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", ProxyFactoryBean.class); 
-		txProxyFactoryBean.setTarget(testUserService);
-		UserService txUserService = (UserService)txProxyFactoryBean.getObject(); 
+//		ProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", ProxyFactoryBean.class); 
+//		txProxyFactoryBean.setTarget(testUserService);
+//		UserService txUserService = (UserService)txProxyFactoryBean.getObject(); 
 													//변경된 타겟 설정을 이용해서 트랜잭션 다이내믹 프록시 오브젝트를 다시 생성한다.
 		
 		//다이내믹 프록시를 이용한 트랜잭션 테스트
@@ -232,7 +236,8 @@ public class UserServiceTest {
 			userDao.add(user);
 		
 		try {
-			txUserService.upgradeLevels();
+//			txUserService.upgradeLevels();
+			this.testUserService.upgradeLevels();
 			fail("TestUserServiceException expected"); //TestUserService는 업그레이드 작업중에 예외가 발생해야 한다. 정상 종료라면 문제가 있으니 실패
 		}catch(TestUserServiceException e) { //TestService가 던져주는 예외를 잡아서 계속 진행하도록 한다. 그 외에 예외라면 테스트 실패
 			
@@ -243,15 +248,18 @@ public class UserServiceTest {
 	}
 	
 	//테스트용 클래스(UserService 대역)
-	static class TestUserService extends UserServiceImpl {
-		private String id;
+	static class TestUserServiceImpl extends UserServiceImpl {
+//		private String id;
+//		
+//		private TestUserServiceImpl(String id) {
+//			this.id = id;
+//		}
 		
-		private TestUserService(String id) {
-			this.id = id;
-		}
+		private String id = "madnite1"; //테스트코드에서 TestUserServiceImpl클래스를 생성하는 것이 아니기 때문에 일단 하드코딩해서 강제 예외할 대상값 초기화
 		
 		protected void upgradeLevel(User user) {
-			if(user.getId().equals(this.id)) throw new TestUserServiceException();
+			if(user.getId().equals(this.id)) 
+				throw new TestUserServiceException();
 			super.upgradeLevel(user);
 		}
 	}
@@ -332,9 +340,12 @@ public class UserServiceTest {
 		public int getCount() {
 			 throw new UnsupportedOperationException(); 
 		}
-
-		
-		
+	}
+	
+	//프록시로 변경된 오브젝트인지 확인한다.
+	@Test
+	public void advisorAutoProxyCreator() {
+		assertThat(testUserService, is(java.lang.reflect.Proxy.class));
 	}
 }
 
