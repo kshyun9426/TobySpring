@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans 
-						http://www.springframework.org/schema/beans/spring-beans.xsd">
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
 	
 	
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
@@ -49,17 +52,34 @@
 	</bean>
 	 -->
 	 
-	 <!-- 포인트컷 설정(클래스 필터가 설정된) -->
+	 <!-- 포인트컷 설정(클래스 필터가 설정된) 
 	 <bean id="transactionPointcut" class="springbook.learningtest.jdk.NameMatchClassMethodPointcut">
 	 	<property name="mappedClassName" value="*ServiceImpl"/>
 	 	<property name="mappedName" value="upgrade*"/>
 	 </bean>
+	 -->
 	 
-	<!-- 어드바이저 설정 -->
+	 <!-- 
+	 <bean id="transactionPointcut" class="org.springframework.aop.aspectj.AspectJExpressionPointcut">
+	 	<property name="expression" value="execution(* *..*ServiceImpl.upgrade*(..))" />
+	 </bean>
+	  -->
+	 
+	 <!-- 
+	 	aop:config는 AOP설정을 담는 부모 태그이다. 필요에 따라 AspectJAdvisorAutoProxyCreator를 빈으로 등록해준다.
+	 	aop:pointcut은 expression의 표현식을 프로퍼티로 가진 AspectJExpressionPointcut을 빈으로 등록해준다.
+	 	aop:advisor는 어드바이스와 pointcut의 ref를 프로퍼티로 갖는 DefaultBeanFactoryPoincutAdvisor를 빈으로 등록해준다.
+	  -->
+	 <aop:config>
+	 	<aop:pointcut id="transactionPointcut" expression="execution(* *..*ServiceImpl.upgrade*(..))" />
+	 	<aop:advisor advice-ref="transactionAdvice" pointcut-ref="transactionPointcut"/>
+	 </aop:config>
+	 
+	<!-- 어드바이저 설정 
 	<bean id="transactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
 		<property name="advice" ref="transactionAdvice"/>
 		<property name="pointcut" ref="transactionPointcut"/>
-	</bean>
+	</bean> -->
 	
 	<!-- ProxyFactoryBean 설정 
 	<bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
@@ -73,8 +93,8 @@
 	--> 
 	 
 	 
-	<!-- DefaultAdvisorAutoProxyCreator 빈 등록 -->
-	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+	<!-- DefaultAdvisorAutoProxyCreator 빈 등록 
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/> -->
 	
 	<!-- 테스트용 UserService의 등록 -->
 	<!-- 스태틱 멤버 클래스는 $로 지정한다. -->
